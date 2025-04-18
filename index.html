@@ -16,6 +16,15 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <!-- Meta Pixel Code -->
     <script>
+    // Add SHA256 hashing function
+    async function sha256(text) {
+        const msgBuffer = new TextEncoder().encode(text);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
     !function(f,b,e,v,n,t,s) {
         if(f.fbq)return;
         n=f.fbq=function(){n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments)};
@@ -34,7 +43,7 @@
     // Check for Facebook Login status
     window.fbAsyncInit = function() {
         FB.init({
-            appId: '1878610126217492', // Your Facebook App ID (same as Pixel ID)
+            appId: '1878610126217492',
             cookie: true,
             xfbml: true,
             version: 'v17.0'
@@ -673,6 +682,9 @@
                 const form = document.getElementById('orderForm');
                 const phone = form ? form.querySelector('input[name="phone"]')?.value : '';
 
+                // Hash the phone number if available
+                const hashedPhone = phone ? await sha256(phone.replace(/\D/g, '')) : undefined;
+
                 // Get Facebook Login ID if available
                 let fb_login_id = undefined;
                 if (typeof FB !== 'undefined') {
@@ -694,7 +706,7 @@
                 if (typeof fbq === 'function') {
                     fbq('track', eventName, {
                         ...eventData,
-                        phone: phone
+                        phone: hashedPhone
                     });
                 }
 
@@ -719,7 +731,7 @@
                         },
                         user_data: {
                             ...eventData.user_data,
-                            ph: phone ? hash(phone.replace(/\D/g, '')) : undefined,
+                            ph: hashedPhone,
                             fb_login_id: fb_login_id,
                             client_ip_address: null, // Will be set by server
                             client_user_agent: navigator.userAgent,
@@ -758,12 +770,6 @@
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop().split(';').shift();
             return null;
-        }
-
-        // Helper function to hash sensitive data
-        function hash(string) {
-            if (!string) return undefined;
-            return string;  // In production, you should implement proper hashing here
         }
 
         // Update the form submission handler
