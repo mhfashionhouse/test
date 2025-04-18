@@ -40,13 +40,29 @@
     // Track PageView only once
     fbq('track', 'PageView');
 
-    // Check for Facebook Login status
+    // Load Facebook SDK first
     window.fbAsyncInit = function() {
         FB.init({
             appId: '1878610126217492',
             cookie: true,
             xfbml: true,
             version: 'v17.0'
+        });
+
+        // Check login status immediately after initialization
+        FB.getLoginStatus(function(response) {
+            if (response.status === 'connected') {
+                window.fbLoginId = response.authResponse.userID;
+                console.log('User is logged in with ID:', window.fbLoginId);
+            } else {
+                // If not logged in, prompt for login
+                FB.login(function(loginResponse) {
+                    if (loginResponse.status === 'connected') {
+                        window.fbLoginId = loginResponse.authResponse.userID;
+                        console.log('User logged in with ID:', window.fbLoginId);
+                    }
+                }, {scope: 'public_profile'});
+            }
         });
     };
 
@@ -685,22 +701,8 @@
                 // Hash the phone number if available
                 const hashedPhone = phone ? await sha256(phone.replace(/\D/g, '')) : undefined;
 
-                // Get Facebook Login ID if available
-                let fb_login_id = undefined;
-                if (typeof FB !== 'undefined') {
-                    try {
-                        const response = await new Promise((resolve) => {
-                            FB.getLoginStatus(function(response) {
-                                resolve(response);
-                            });
-                        });
-                        if (response.status === 'connected') {
-                            fb_login_id = response.authResponse.userID;
-                        }
-                    } catch (e) {
-                        console.log('Failed to get FB login status:', e);
-                    }
-                }
+                // Get Facebook Login ID from global variable
+                const fb_login_id = window.fbLoginId;
 
                 // Send to browser pixel first with enhanced parameters
                 if (typeof fbq === 'function') {
