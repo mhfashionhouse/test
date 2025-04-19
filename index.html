@@ -737,7 +737,34 @@
             return null;
         }
 
-        // Update the form submission handler
+        // Update the thank you popup function
+        function showThankYouPopup() {
+            const popup = document.getElementById('thankYouPopup');
+            if (popup) {
+                // Try to vibrate immediately when showing popup
+                try {
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate([500, 100, 500]);
+                    }
+                } catch (e) {
+                    console.log('Vibration failed:', e);
+                }
+
+                popup.style.display = 'flex';
+                setTimeout(() => {
+                    popup.classList.add('show');
+                }, 10);
+                
+                // Trigger confetti
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        // Handle order form submission
         async function handleOrderSubmit(event) {
             event.preventDefault();
             
@@ -802,7 +829,7 @@
                 // Send to Facebook
                 await trackEvent('Purchase', purchaseData);
                 
-                // Show thank you popup immediately
+                // Show thank you popup
                 showThankYouPopup();
                 
                 // Reset form and selections
@@ -813,31 +840,10 @@
                 
                 return false;
             } catch (error) {
-                // Just show the thank you popup even if there's an error with tracking
+                console.error('Order submission error:', error);
+                // Still show the thank you popup even if there's an error with tracking
                 showThankYouPopup();
                 return false;
-            }
-        }
-
-        // Update the thank you popup function
-        function showThankYouPopup() {
-            const popup = document.getElementById('thankYouPopup');
-            if (popup) {
-                popup.style.display = 'flex';
-                setTimeout(() => {
-                    popup.classList.add('show');
-                    // Vibrate the phone when popup shows
-                    if ('vibrate' in navigator) {
-                        navigator.vibrate([500, 100, 500]);
-                    }
-                }, 10);
-                
-                // Trigger confetti
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
             }
         }
 
