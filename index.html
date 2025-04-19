@@ -662,17 +662,10 @@
                 // Get form data for enhanced matching
                 const form = document.getElementById('orderForm');
                 const phone = form ? form.querySelector('input[name="phone"]')?.value : '';
-
-                // Hash the phone number if available
-                const hashedPhone = phone ? await sha256(phone.replace(/\D/g, '')) : undefined;
-
-                // Send to browser pixel first with enhanced parameters
-                if (typeof fbq === 'function') {
-                    fbq('track', eventName, {
-                        ...eventData,
-                        phone: hashedPhone
-                    });
-                }
+                
+                // Clean and hash the phone number
+                const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+                const hashedPhone = cleanPhone ? await sha256(cleanPhone) : undefined;
 
                 // Get Facebook click ID (fbc) and browser ID (fbp)
                 const fbc = getCookie('_fbc') || '';
@@ -696,13 +689,22 @@
                         user_data: {
                             ...eventData.user_data,
                             ph: hashedPhone,
-                            client_ip_address: null, // Will be set by server
-                            client_user_agent: navigator.userAgent,
-                            fbc: fbc,
-                            fbp: fbp
+                            external_id: cleanPhone, // Not hashed - no hash required
+                            client_ip_address: null, // Will be set by server - no hash required
+                            client_user_agent: navigator.userAgent, // No hash required
+                            fbc: fbc, // No hash required
+                            fbp: fbp // No hash required
                         }
                     }]
                 };
+
+                // Send to browser pixel first with enhanced parameters
+                if (typeof fbq === 'function') {
+                    fbq('track', eventName, {
+                        ...eventData,
+                        phone: hashedPhone
+                    });
+                }
 
                 const response = await fetch('/.netlify/functions/conversion-api', {
                     method: 'POST',
@@ -824,12 +826,11 @@
                 popup.style.display = 'flex';
                 setTimeout(() => {
                     popup.classList.add('show');
+                    // Vibrate the phone when popup shows
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate([500, 100, 500]);
+                    }
                 }, 10);
-
-                // Vibrate the phone - pattern: 500ms vibrate, 100ms pause, 500ms vibrate
-                if ('vibrate' in navigator) {
-                    navigator.vibrate([500, 100, 500]);
-                }
                 
                 // Trigger confetti
                 confetti({
